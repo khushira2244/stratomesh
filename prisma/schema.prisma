@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrganizationLayer {
+  CLIENT_COMPANY
+  BROKER
+  INSURANCE_COMPANY
+}
+
+enum CaseStatus {
+  INTAKE
+  NEEDS_REVIEW
+  IN_WORKFLOW
+  BLOCKED
+  COMPLETED
+  CLOSED
+}
+
+enum DocumentStatus {
+  RECEIVED
+  MISSING
+  PARTIAL
+  NOT_REQUIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BlockStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  BLOCKED
+  WAITING
+  COMPLETED
+  SKIPPED
+  NOT_APPLICABLE
+}
+
+model Organization {
+  id        String            @id @default(cuid())
+  name      String
+  layer     OrganizationLayer
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  teams     Team[]
+  cases     InsuranceCase[]
+}
+
+model Team {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model BrokerRequestDocument {
+  id            String   @id @default(cuid())
+  fileName      String
+  documentType  String
+  rawText       String
+  extractedJson Json
+  createdAt     DateTime @default(now())
+
+  cases         InsuranceCase[]
+}
+
+model InsuranceCase {
+  id                     String     @id @default(cuid())
+  organizationId          String
+  brokerRequestDocumentId String?
+
+  caseCode                String     @unique
+  title                   String
+  requestType             String
+  insuranceType           String
+  status                  CaseStatus @default(INTAKE)
+
+  brokerName              String?
+  brokerContactPerson     String?
+  brokerEmail             String?
+  brokerPriority          String?
+
+  clientCompanyName       String
+  clientIndustry          String?
+  clientType              String?
+  clientLocation          String?
+  clientBusinessSize      String?
+
+  expectedPremium         String?
+  targetPremium           String?
+  sumInsured              String?
+  quoteDeadline           DateTime?
+  policyStartDate         DateTime?
+  policyEndDate           DateTime?
+  monthEndPriority        Boolean    @default(false)
+
+  riskLevel               RiskLevel  @default(MEDIUM)
+  riskTags                String[]
+
+  happyPath               Boolean    @default(false)
+  businessImpact          String?
+
+  currentTeam             String?
+  currentBlockName        String?
+  currentStatus           BlockStatus?
+  suggestedNextBlock      String?
+  suggestedRoute          String?
+
+  extractedData           Json?
+  assetSchedule           Json?
+  coverageRequired        String[]
+  problems                Json?
+
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
+
+  organization            Organization           @relation(fields: [organizationId], references: [id])
+  brokerRequestDocument   BrokerRequestDocument? @relation(fields: [brokerRequestDocumentId], references: [id])
+
+  documents               CaseDocument[]
+  caseBlocks              CaseBlock[]
+  aiSuggestions           AiSuggestion[]
+
+  @@index([organizationId])
+  @@index([brokerRequestDocumentId])
+  @@index([status])
+}
+
+model CaseDocument {
+  id         String         @id @default(cuid())
+  caseId     String
+  name       String
+  status     DocumentStatus
+  isRequired Boolean        @default(true)
+  owner      String?
+  notes      String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  case       InsuranceCase  @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([status])
+}
+
+model CaseBlock {
+  id               String      @id @default(cuid())
+  caseId           String
+
+  teamKey          String
+  teamName         String?
+  name             String
+  blockType        String
+  order            Int
+  status           BlockStatus @default(NOT_STARTED)
+
+  inputs           Json?
+  requiredDocs     Json?
+  checks           Json?
+  responsible      String?
+  observers        String[]
+  slaDays          Int?
+  output           Json?
+  outputVisibility String?
+  routeRules       Json?
+  routeToNext      String?
+  pendingReason    String?
+  comments         String?
+  learningNotes    String?
+
+  isDraggable      Boolean     @default(true)
+  isDisabled       Boolean     @default(false)
+  config           Json?
+
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  case             InsuranceCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([caseId, teamKey])
+  @@index([status])
+  @@unique([caseId, teamKey, order])
+}
+
+model AiSuggestion {
+  id         String         @id @default(cuid())
+  caseId     String?
+  type       String
+  title      String
+  suggestion String
+  payload    Json?
+  accepted   Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+
+  case       InsuranceCase? @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+}
