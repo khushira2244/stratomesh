@@ -224,6 +224,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
           create: [
             {
               name: "Request Received",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "REQUEST_INTAKE",
               order: 1,
               status: BlockStatus.COMPLETED,
@@ -237,6 +239,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "Opportunity Qualification",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "REVIEW",
               order: 2,
               status: BlockStatus.IN_PROGRESS,
@@ -256,6 +260,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "New / Existing Client Check",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "DATA_CHECK",
               order: 3,
               status: BlockStatus.NOT_STARTED,
@@ -269,6 +275,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "Document Completeness Check",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "DOCUMENT_CHECK",
               order: 4,
               status: BlockStatus.BLOCKED,
@@ -295,6 +303,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "Query Broker",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "EXTERNAL_HANDOFF",
               order: 5,
               status: BlockStatus.NOT_STARTED,
@@ -309,6 +319,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "Risk Tagging",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "RISK_CHECK",
               order: 6,
               status: BlockStatus.NOT_STARTED,
@@ -327,6 +339,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "Manager Observation",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "OBSERVATION_POINT",
               order: 7,
               status: BlockStatus.NOT_STARTED,
@@ -338,6 +352,8 @@ Please provide quotation urgently as client wants coverage from 01 July 2026.
             },
             {
               name: "Underwriting Handoff",
+              teamKey: "sales",
+              teamName: "Sales / Relationship",
               blockType: "INTERNAL_HANDOFF",
               order: 8,
               status: BlockStatus.NOT_STARTED,
