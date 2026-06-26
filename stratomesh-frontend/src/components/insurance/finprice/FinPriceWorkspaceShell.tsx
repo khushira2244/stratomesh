@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+"use client";
+
+import { Suspense, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FinPriceReceivedDesk from "./FinPriceReceivedDesk";
@@ -41,7 +43,7 @@ type Props = {
   pipelineSteps: PipelineStep[];
 };
 
-export default function FinPriceWorkspaceShell({
+function FinPriceWorkspaceShellContent({
   teamSlug,
   teamName,
   heading,
@@ -486,6 +488,38 @@ export default function FinPriceWorkspaceShell({
         </section>
       )}
     </main>
+  );
+}
+
+export default function FinPriceWorkspaceShell(props: Props) {
+  return (
+    <Suspense
+      fallback={
+        <main
+          style={{
+            minHeight: "100vh",
+            background: "#f8fafc",
+            color: "#0f172a",
+            padding: "24px 28px",
+          }}
+        >
+          <section
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: "24px",
+              background: "#ffffff",
+              padding: "24px",
+              fontSize: "14px",
+              fontWeight: 800,
+            }}
+          >
+            Loading workspace...
+          </section>
+        </main>
+      }
+    >
+      <FinPriceWorkspaceShellContent {...props} />
+    </Suspense>
   );
 }
 

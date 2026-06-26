@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   cloneWorkspaceItems,
@@ -48,14 +48,14 @@ type EmailItem = {
   workItemType?: SalesWorkItemType;
   previewText?: string;
   attachment?:
-  | string
-  | {
-    id?: string;
-    fileName?: string;
-    mimeType?: string;
-    size?: number;
-    sourcePath?: string;
-  };
+    | string
+    | {
+        id?: string;
+        fileName?: string;
+        mimeType?: string;
+        size?: number;
+        sourcePath?: string;
+      };
   attachments?: string[];
 };
 
@@ -164,12 +164,13 @@ function getTeamBlocks(caseDetail: CaseDetail | null, team: string) {
 function getStatusClass(status: WorkspaceItemStatus) {
   if (status === "ADDED") return "bg-green-50 text-green-700 border-green-200";
   if (status === "MISSING") return "bg-red-50 text-red-700 border-red-200";
-  if (status === "OBSERVE") return "bg-purple-50 text-purple-700 border-purple-200";
+  if (status === "OBSERVE")
+    return "bg-purple-50 text-purple-700 border-purple-200";
 
   return "bg-slate-50 text-slate-600 border-slate-200";
 }
 
-export default function SalesIntakePage() {
+function SalesIntakeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -208,22 +209,22 @@ export default function SalesIntakePage() {
   const [error, setError] = useState("");
   const [underwritingSent, setUnderwritingSent] = useState(false);
 
-useEffect(() => {
-  const session = getDemoSession();
+  useEffect(() => {
+    const session = getDemoSession();
 
-  setName(nameFromUrl || session.userName || "Demo User");
-  setJourney(journeyFromUrl || session.scenarioKey || "happy-new-policy");
-  setSelectedTeam(teamFromUrl || session.role || "sales");
-  setAgendaLabel(session.agendaLabel || "New Business / New Policy");
-  setAgendaId(session.agendaId || "new-policy-premium-closure");
-  setScenarioName(session.scenarioName || "Sunrise Foods Insurance");
+    setName(nameFromUrl || session.userName || "Demo User");
+    setJourney(journeyFromUrl || session.scenarioKey || "happy-new-policy");
+    setSelectedTeam(teamFromUrl || session.role || "sales");
+    setAgendaLabel(session.agendaLabel || "New Business / New Policy");
+    setAgendaId(session.agendaId || "new-policy-premium-closure");
+    setScenarioName(session.scenarioName || "Sunrise Foods Insurance");
 
-  const activeCaseId = session.activeCaseId || "";
+    const activeCaseId = session.activeCaseId || "";
 
-  if (activeCaseId) {
-    setCaseId(activeCaseId);
-  }
-}, [nameFromUrl, journeyFromUrl, teamFromUrl]);
+    if (activeCaseId) {
+      setCaseId(activeCaseId);
+    }
+  }, [nameFromUrl, journeyFromUrl, teamFromUrl]);
 
   const teamLabel = useMemo(() => {
     return teams.find((team) => team.value === selectedTeam)?.label || "Sales";
@@ -320,7 +321,7 @@ useEffect(() => {
         setError("");
 
         const response = await fetch(
-          `${API_BASE_URL}/insurance-company/intake/sales/emails?storyKey=${journey}`,
+          `${API_BASE_URL}/insurance-company/intake/sales/emails?storyKey=${journey}`
         );
 
         if (!response.ok) {
@@ -445,7 +446,7 @@ useEffect(() => {
       setDeskLoading(true);
 
       const response = await fetch(
-        `${API_BASE_URL}/insurance-company/intake/sales/emails/${emailId}`,
+        `${API_BASE_URL}/insurance-company/intake/sales/emails/${emailId}`
       );
 
       if (!response.ok) {
@@ -468,12 +469,14 @@ useEffect(() => {
         ? "CLAIM_INTIMATION"
         : "BROKER_NEW_POLICY_REQUEST");
 
+    const session = getDemoSession();
+
     const caseIdForItem =
       workItemType === "INTERNAL_QUOTATION" ||
-        workItemType === "BROKER_QUOTE_ACCEPTANCE" ||
-        workItemType === "BROKER_DOCUMENT_RESPONSE"
-        ? DEMO_ACTIVE_CASE_ID
-        : caseId || getDemoSession().activeCaseId || DEMO_ACTIVE_CASE_ID;
+      workItemType === "BROKER_QUOTE_ACCEPTANCE" ||
+      workItemType === "BROKER_DOCUMENT_RESPONSE"
+        ? session.activeCaseId || caseId || ""
+        : caseId || session.activeCaseId || "";
 
     setSelectedWorkItemType(workItemType);
     setDraftRequest(item as any);
@@ -483,11 +486,13 @@ useEffect(() => {
     setCaseDetail(null);
     setUnderwritingSent(false);
 
-    setCaseId(caseIdForItem);
+    if (caseIdForItem) {
+      setCaseId(caseIdForItem);
 
-    setDemoSession({
-      activeCaseId: caseIdForItem,
-    });
+      setDemoSession({
+        activeCaseId: caseIdForItem,
+      });
+    }
 
     setActiveTab("workspace");
   };
@@ -527,7 +532,7 @@ useEffect(() => {
                 importantFor:
                   "Sales can add scenario-specific business context.",
               },
-            ],
+            ]
           ),
         },
       ]);
@@ -552,7 +557,7 @@ useEffect(() => {
             observed: false,
             importantFor: "Sales can add scenario-specific business context.",
           },
-        ],
+        ]
       );
       const observedItems = getObservedItems(items);
       const missingItems = getMissingItems(items);
@@ -634,7 +639,7 @@ useEffect(() => {
               missingItems,
             },
           }),
-        },
+        }
       );
 
       if (!response.ok) {
@@ -642,7 +647,7 @@ useEffect(() => {
       }
 
       const detailResponse = await fetch(
-        `${API_BASE_URL}/insurance-company/cases/${caseId}`,
+        `${API_BASE_URL}/insurance-company/cases/${caseId}`
       );
 
       if (!detailResponse.ok) {
@@ -661,49 +666,49 @@ useEffect(() => {
   const updateDraftBoxItemStatus = (
     boxId: string,
     itemId: string,
-    status: WorkspaceItemStatus,
+    status: WorkspaceItemStatus
   ) => {
     setDraftBoxes((current) =>
       current.map((box) =>
         box.id !== boxId
           ? box
           : {
-            ...box,
-            items: box.items.map((item) =>
-              item.id === itemId
-                ? {
-                  ...item,
-                  status,
-                  observed: status === "OBSERVE",
-                }
-                : item,
-            ),
-          },
-      ),
+              ...box,
+              items: box.items.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      status,
+                      observed: status === "OBSERVE",
+                    }
+                  : item
+              ),
+            }
+      )
     );
   };
 
   const updateDraftBoxItemComment = (
     boxId: string,
     itemId: string,
-    comments: string,
+    comments: string
   ) => {
     setDraftBoxes((current) =>
       current.map((box) =>
         box.id !== boxId
           ? box
           : {
-            ...box,
-            items: box.items.map((item) =>
-              item.id === itemId
-                ? {
-                  ...item,
-                  comments,
-                }
-                : item,
-            ),
-          },
-      ),
+              ...box,
+              items: box.items.map((item) =>
+                item.id === itemId
+                  ? {
+                      ...item,
+                      comments,
+                    }
+                  : item
+              ),
+            }
+      )
     );
   };
 
@@ -737,11 +742,6 @@ useEffect(() => {
 
       let targetCaseId = caseId || session.activeCaseId || DEMO_ACTIVE_CASE_ID;
 
-      /**
-       * Only first broker intake style items create a new case from email.
-       * Internal quotation / broker acceptance / broker document response
-       * must work on an existing active case.
-       */
       if (needsNewCase && emailId && !targetCaseId) {
         const createResponse = await fetch(
           `${API_BASE_URL}/insurance-company/intake/sales/emails/${emailId}/create-case`,
@@ -771,8 +771,8 @@ useEffect(() => {
         if (!createResponse.ok) {
           throw new Error(
             createJson?.message ||
-            createJson?.error ||
-            `Create case failed with status ${createResponse.status}`
+              createJson?.error ||
+              `Create case failed with status ${createResponse.status}`
           );
         }
 
@@ -904,17 +904,12 @@ useEffect(() => {
         if (!addBlockResponse.ok) {
           throw new Error(
             addBlockJson?.message ||
-            addBlockJson?.error ||
-            `Unable to add ${box.name}`
+              addBlockJson?.error ||
+              `Unable to add ${box.name}`
           );
         }
       }
 
-      /**
-       * Only broker acceptance should move to Finance immediately.
-       * INTERNAL_QUOTATION only means quote sent to broker.
-       * After broker accepts, user selects BROKER_QUOTE_ACCEPTANCE and then progresses to Finance.
-       */
       if (selectedWorkItemType === "BROKER_QUOTE_ACCEPTANCE") {
         const financeHandoffResponse = await fetch(
           `${API_BASE_URL}/insurance-company/cases/${targetCaseId}/blocks/add`,
@@ -961,8 +956,7 @@ useEffect(() => {
                 brokerName:
                   (workItem as any)?.brokerName || "Apex Risk Brokers",
 
-                premium:
-                  (workItem as any)?.premium || "₹36L",
+                premium: (workItem as any)?.premium || "₹36L",
 
                 paymentStatus: "IN_PROGRESS",
                 financeQueueTitle: "Premium Handoff from Sales",
@@ -988,8 +982,8 @@ useEffect(() => {
         if (!financeHandoffResponse.ok) {
           throw new Error(
             financeHandoffJson?.message ||
-            financeHandoffJson?.error ||
-            "Unable to create Finance handoff block."
+              financeHandoffJson?.error ||
+              "Unable to create Finance handoff block."
           );
         }
 
@@ -1034,137 +1028,137 @@ useEffect(() => {
     }
   };
 
-const handleProgressCase = async () => {
-  if (!caseId) {
-    setError("Create a case first.");
-    return;
-  }
+  const handleProgressCase = async () => {
+    if (!caseId) {
+      setError("Create a case first.");
+      return;
+    }
 
-  if (underwritingSent) {
-    return;
-  }
+    if (underwritingSent) {
+      return;
+    }
 
-  try {
-    setWorkspaceLoading(true);
-    setError("");
+    try {
+      setWorkspaceLoading(true);
+      setError("");
 
-    if (selectedWorkItemType === "BROKER_QUOTE_ACCEPTANCE") {
-      const financeHandoffResponse = await fetch(
-        `${API_BASE_URL}/insurance-company/cases/${caseId}/blocks/add`,
+      if (selectedWorkItemType === "BROKER_QUOTE_ACCEPTANCE") {
+        const financeHandoffResponse = await fetch(
+          `${API_BASE_URL}/insurance-company/cases/${caseId}/blocks/add`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              teamKey: "finance",
+              name: "Premium Handoff from Sales",
+              status: "IN_PROGRESS",
+              responsible: "Finance Executive",
+              observers: ["Sales", "Management / Compliance"],
+              inputs: [
+                "Broker accepted quotation",
+                "Premium amount",
+                "Broker acceptance confirmation",
+                "Payment proof / UTR if available",
+              ],
+              output: ["Finance premium clearance"],
+              slaDays: 1,
+              pendingReason: "Finance needs to verify premium/payment clearance.",
+              routeToNext: "policy-issuance",
+              comments:
+                "Sales confirmed broker quotation acceptance and handed premium/payment context to Finance.",
+              config: {
+                workItemType: "BROKER_QUOTE_ACCEPTANCE",
+
+                sourceTeam: "sales",
+                sourceTeamLabel: "Sales",
+                fromTeam: "sales",
+
+                targetTeam: "finance",
+                targetTeamLabel: "Finance",
+
+                handoffType: "SALES_TO_FINANCE_PREMIUM_HANDOFF",
+
+                clientCompanyName:
+                  draftRequest?.clientCompanyName ||
+                  draftRequest?.client ||
+                  caseDetail?.clientCompanyName ||
+                  "Sunrise Foods Pvt Ltd",
+
+                brokerName:
+                  draftRequest?.brokerName ||
+                  caseDetail?.brokerName ||
+                  "Apex Risk Brokers",
+
+                premium:
+                  draftRequest?.premium ||
+                  caseDetail?.expectedPremium ||
+                  "₹36L",
+
+                paymentStatus: "IN_PROGRESS",
+                financeQueueTitle: "Premium Handoff from Sales",
+              },
+            }),
+          }
+        );
+
+        const financeHandoffText = await financeHandoffResponse.text();
+
+        let financeHandoffJson: any = null;
+
+        try {
+          financeHandoffJson = financeHandoffText
+            ? JSON.parse(financeHandoffText)
+            : null;
+        } catch {
+          throw new Error(
+            financeHandoffText || "Finance handoff returned invalid JSON."
+          );
+        }
+
+        if (!financeHandoffResponse.ok) {
+          throw new Error(
+            financeHandoffJson?.message ||
+              financeHandoffJson?.error ||
+              "Unable to create Finance handoff block."
+          );
+        }
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/insurance-company/cases/${caseId}/progress`,
         {
-          method: "POST",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            teamKey: "finance",
-            name: "Premium Handoff from Sales",
-            status: "IN_PROGRESS",
-            responsible: "Finance Executive",
-            observers: ["Sales", "Management / Compliance"],
-            inputs: [
-              "Broker accepted quotation",
-              "Premium amount",
-              "Broker acceptance confirmation",
-              "Payment proof / UTR if available",
-            ],
-            output: ["Finance premium clearance"],
-            slaDays: 1,
-            pendingReason: "Finance needs to verify premium/payment clearance.",
-            routeToNext: "policy-issuance",
-            comments:
-              "Sales confirmed broker quotation acceptance and handed premium/payment context to Finance.",
-            config: {
-              workItemType: "BROKER_QUOTE_ACCEPTANCE",
-
-              sourceTeam: "sales",
-              sourceTeamLabel: "Sales",
-              fromTeam: "sales",
-
-              targetTeam: "finance",
-              targetTeamLabel: "Finance",
-
-              handoffType: "SALES_TO_FINANCE_PREMIUM_HANDOFF",
-
-              clientCompanyName:
-                draftRequest?.clientCompanyName ||
-                draftRequest?.client ||
-                caseDetail?.clientCompanyName ||
-                "Sunrise Foods Pvt Ltd",
-
-              brokerName:
-                draftRequest?.brokerName ||
-                caseDetail?.brokerName ||
-                "Apex Risk Brokers",
-
-              premium:
-                draftRequest?.premium ||
-                caseDetail?.expectedPremium ||
-                "₹36L",
-
-              paymentStatus: "IN_PROGRESS",
-              financeQueueTitle: "Premium Handoff from Sales",
-            },
-          }),
+          body: JSON.stringify({}),
         }
       );
 
-      const financeHandoffText = await financeHandoffResponse.text();
-
-      let financeHandoffJson: any = null;
-
-      try {
-        financeHandoffJson = financeHandoffText
-          ? JSON.parse(financeHandoffText)
-          : null;
-      } catch {
-        throw new Error(
-          financeHandoffText || "Finance handoff returned invalid JSON."
-        );
+      if (!response.ok) {
+        throw new Error("Unable to progress case");
       }
 
-      if (!financeHandoffResponse.ok) {
-        throw new Error(
-          financeHandoffJson?.message ||
-            financeHandoffJson?.error ||
-            "Unable to create Finance handoff block."
-        );
+      const detailResponse = await fetch(
+        `${API_BASE_URL}/insurance-company/cases/${caseId}`
+      );
+
+      if (!detailResponse.ok) {
+        throw new Error("Case progressed, but case detail could not be refreshed.");
       }
+
+      const detailJson = await detailResponse.json();
+      setCaseDetail(detailJson?.data || detailJson);
+
+      setUnderwritingSent(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to progress case");
+    } finally {
+      setWorkspaceLoading(false);
     }
-
-    const response = await fetch(
-      `${API_BASE_URL}/insurance-company/cases/${caseId}/progress`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Unable to progress case");
-    }
-
-    const detailResponse = await fetch(
-      `${API_BASE_URL}/insurance-company/cases/${caseId}`
-    );
-
-    if (!detailResponse.ok) {
-      throw new Error("Case progressed, but case detail could not be refreshed.");
-    }
-
-    const detailJson = await detailResponse.json();
-    setCaseDetail(detailJson?.data || detailJson);
-
-    setUnderwritingSent(true);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Unable to progress case");
-  } finally {
-    setWorkspaceLoading(false);
-  }
-};
+  };
 
   const getFinalActionText = () => {
     if (workspaceLoading) return "Finalizing...";
@@ -1243,10 +1237,11 @@ const handleProgressCase = async () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as TabKey)}
-                className={`rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === tab.id
-                  ? "bg-slate-950 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                  activeTab === tab.id
+                    ? "bg-slate-950 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
               >
                 {tab.label}
               </button>
@@ -1292,10 +1287,11 @@ const handleProgressCase = async () => {
                     key={source}
                     type="button"
                     onClick={() => setReceiveSource(source)}
-                    className={`rounded-xl px-4 py-2 text-sm font-black ${receiveSource === source
+                    className={`rounded-xl px-4 py-2 text-sm font-black ${
+                      receiveSource === source
                         ? "bg-slate-950 text-white"
                         : "bg-slate-100 text-slate-700"
-                      }`}
+                    }`}
                   >
                     {source === "external" ? "External" : "Internal"}
                   </button>
@@ -1331,13 +1327,15 @@ const handleProgressCase = async () => {
               {!deskLoading &&
                 deskRows.map((email, index) => {
                   const isSelected =
-                    selectedEmail && getEmailId(selectedEmail) === getEmailId(email);
+                    selectedEmail &&
+                    getEmailId(selectedEmail) === getEmailId(email);
 
                   return (
                     <article
                       key={getEmailId(email) || `${getEmailTitle(email)}-${index}`}
-                      className={`px-5 py-4 transition ${isSelected ? "bg-sky-50/70" : "bg-white hover:bg-slate-50"
-                        }`}
+                      className={`px-5 py-4 transition ${
+                        isSelected ? "bg-sky-50/70" : "bg-white hover:bg-slate-50"
+                      }`}
                     >
                       <div className="grid grid-cols-1 items-center gap-4 lg:grid-cols-[1.2fr_1fr_0.8fr_0.7fr_0.8fr_auto]">
                         <div>
@@ -1460,17 +1458,17 @@ const handleProgressCase = async () => {
                         </div>
 
                         <div className="mt-2 text-sm leading-6 text-slate-600">
-                          Broker: {" "}
+                          Broker:{" "}
                           <span className="font-bold text-slate-900">
                             {getBroker(draftRequest)}
                           </span>
                           <br />
-                          Client: {" "}
+                          Client:{" "}
                           <span className="font-bold text-slate-900">
                             {getClient(draftRequest)}
                           </span>
                           <br />
-                          Attachment: {" "}
+                          Attachment:{" "}
                           <span className="font-bold text-slate-900">
                             {getAttachmentName(draftRequest)}
                           </span>
@@ -1524,19 +1522,19 @@ const handleProgressCase = async () => {
 
                                     {(observedItems.length > 0 ||
                                       missingItems.length > 0) && (
-                                        <div className="flex flex-wrap justify-end gap-2">
-                                          {observedItems.length > 0 && (
-                                            <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-black text-purple-700">
-                                              {observedItems.length} Observe
-                                            </span>
-                                          )}
-                                          {missingItems.length > 0 && (
-                                            <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">
-                                              {missingItems.length} Missing
-                                            </span>
-                                          )}
-                                        </div>
-                                      )}
+                                      <div className="flex flex-wrap justify-end gap-2">
+                                        {observedItems.length > 0 && (
+                                          <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-black text-purple-700">
+                                            {observedItems.length} Observe
+                                          </span>
+                                        )}
+                                        {missingItems.length > 0 && (
+                                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">
+                                            {missingItems.length} Missing
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
 
                                   <div className="mt-4 space-y-3">
@@ -1557,7 +1555,7 @@ const handleProgressCase = async () => {
 
                                           <span
                                             className={`rounded-full border px-2 py-1 text-[11px] font-black ${getStatusClass(
-                                              item.status,
+                                              item.status
                                             )}`}
                                           >
                                             {item.status.replace("_", " ")}
@@ -1580,13 +1578,14 @@ const handleProgressCase = async () => {
                                                 updateDraftBoxItemStatus(
                                                   box.id,
                                                   item.id,
-                                                  status,
+                                                  status
                                                 )
                                               }
-                                              className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${item.status === status
-                                                ? "bg-slate-950 text-white"
-                                                : "border border-slate-200 bg-slate-50 text-slate-600"
-                                                }`}
+                                              className={`rounded-lg px-3 py-1.5 text-[11px] font-black ${
+                                                item.status === status
+                                                  ? "bg-slate-950 text-white"
+                                                  : "border border-slate-200 bg-slate-50 text-slate-600"
+                                              }`}
                                             >
                                               {status.replace("_", " ")}
                                             </button>
@@ -1604,7 +1603,7 @@ const handleProgressCase = async () => {
                                               updateDraftBoxItemComment(
                                                 box.id,
                                                 item.id,
-                                                event.target.value,
+                                                event.target.value
                                               )
                                             }
                                             placeholder="Add comment for Underwriting / Manager..."
@@ -1656,11 +1655,11 @@ const handleProgressCase = async () => {
                         "Insurance case"}
                     </div>
                     <div className="mt-2 text-sm text-slate-600">
-                      Current team: {" "}
+                      Current team:{" "}
                       <span className="font-bold text-slate-950">
                         {caseDetail?.currentTeam || teamLabel}
                       </span>{" "}
-                      · Current status: {" "}
+                      · Current status:{" "}
                       <span className="font-bold text-amber-700">
                         {caseDetail?.currentStatus || "In Progress"}
                       </span>
@@ -1733,7 +1732,7 @@ const handleProgressCase = async () => {
                                       </div>
                                       <span
                                         className={`rounded-full border px-2 py-1 text-[10px] font-black ${getStatusClass(
-                                          item.status,
+                                          item.status
                                         )}`}
                                       >
                                         {item.status.replace("_", " ")}
@@ -1870,10 +1869,11 @@ const handleProgressCase = async () => {
               ].map((step, index) => (
                 <div key={step.title} className="flex items-center gap-4">
                   <div
-                    className={`min-h-32 flex-1 rounded-2xl border p-4 text-center ${step.active
-                      ? "border-sky-300 bg-sky-50"
-                      : "border-slate-200 bg-slate-50"
-                      }`}
+                    className={`min-h-32 flex-1 rounded-2xl border p-4 text-center ${
+                      step.active
+                        ? "border-sky-300 bg-sky-50"
+                        : "border-slate-200 bg-slate-50"
+                    }`}
                   >
                     <div className="text-sm font-black text-slate-950">
                       {step.title}
@@ -1914,7 +1914,7 @@ const handleProgressCase = async () => {
                         {request.title || request.subject || "Broker-side request"}
                       </div>
                       <div className="mt-1 text-slate-600">
-                        Status: {request.status || "Pending"} · Owner: {" "}
+                        Status: {request.status || "Pending"} · Owner:{" "}
                         {request.ownerTeam || "Sales"}
                       </div>
                     </div>
@@ -1930,5 +1930,21 @@ const handleProgressCase = async () => {
         )}
       </section>
     </main>
+  );
+}
+
+export default function SalesIntakePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#F6F7F4] px-6 py-10 text-slate-950">
+          <div className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-8 text-sm font-bold shadow-sm">
+            Loading Sales workspace...
+          </div>
+        </main>
+      }
+    >
+      <SalesIntakeContent />
+    </Suspense>
   );
 }

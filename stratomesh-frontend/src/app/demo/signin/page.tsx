@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getDemoSession, setDemoSession } from "../../../lib/demo-session";
@@ -15,7 +15,7 @@ const teams = [
   { value: "management", label: "Management / Compliance" },
 ];
 
-export default function DemoSignInPage() {
+function DemoSignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -27,19 +27,19 @@ export default function DemoSignInPage() {
   const [scenarioName, setScenarioName] = useState("Sunrise Foods Insurance");
   const [agendaLabel, setAgendaLabel] = useState("New Business / New Policy");
 
- useEffect(() => {
-  const session = getDemoSession();
+  useEffect(() => {
+    const session = getDemoSession();
 
-  setName(
-    !session.userName || session.userName === "Demo User"
-      ? ""
-      : session.userName
-  );
+    setName(
+      !session.userName || session.userName === "Demo User"
+        ? ""
+        : session.userName
+    );
 
-  setTeam(session.role || "sales");
-  setScenarioName(session.scenarioName || "Sunrise Foods Insurance");
-  setAgendaLabel(session.agendaLabel || "New Business / New Policy");
-}, []);
+    setTeam(session.role || "sales");
+    setScenarioName(session.scenarioName || "Sunrise Foods Insurance");
+    setAgendaLabel(session.agendaLabel || "New Business / New Policy");
+  }, []);
 
   const handleContinue = () => {
     const userName = name.trim() || "Demo User";
@@ -181,5 +181,21 @@ export default function DemoSignInPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function DemoSignInPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#F7F3EA] px-6 py-10 text-slate-950">
+          <div className="mx-auto max-w-5xl rounded-3xl border border-slate-200 bg-white p-8 text-sm font-bold shadow-sm">
+            Loading demo sign in...
+          </div>
+        </main>
+      }
+    >
+      <DemoSignInContent />
+    </Suspense>
   );
 }

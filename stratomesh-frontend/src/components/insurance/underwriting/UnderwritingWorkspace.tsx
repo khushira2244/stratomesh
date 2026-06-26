@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -46,7 +46,7 @@ const teams = [
   { value: "management", label: "Management / Compliance" },
 ];
 
-export default function UnderwritingWorkspace() {
+function UnderwritingWorkspaceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -629,6 +629,37 @@ async function openWorkspace(caseId: string) {
         )}
       </div>
     </main>
+  );
+}
+
+export default function UnderwritingWorkspace() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          style={{
+            minHeight: "100vh",
+            background: "#f6f8fa",
+            color: "#020817",
+            padding: "24px",
+          }}
+        >
+          <section
+            style={{
+              background: "#ffffff",
+              border: "1px solid #dfe7ef",
+              borderRadius: "24px",
+              padding: "24px",
+              fontWeight: 800,
+            }}
+          >
+            Loading Underwriting workspace...
+          </section>
+        </main>
+      }
+    >
+      <UnderwritingWorkspaceContent />
+    </Suspense>
   );
 }
 
