@@ -1,6 +1,6 @@
 const MANAGER_API_BASE =
   process.env.NEXT_PUBLIC_MANAGER_API_BASE ||
-  "http://localhost:3001/api/insurance-company";
+  "/backend-api/insurance-company";
 
 async function requestJson<T>(url: string): Promise<T> {
   const response = await fetch(url, {

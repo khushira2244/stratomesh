@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/backend-api/:path*",
-        destination: "http://localhost:3001/api/:path*",
+        destination: "https://stratomesh-3tvv.vercel.app/api/:path*",
       },
     ];
   },

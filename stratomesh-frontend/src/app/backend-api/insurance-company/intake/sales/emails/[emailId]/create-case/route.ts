@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_BASE_URL = "http://localhost:3001/api";
+const BACKEND_BASE_URL = "https://stratomesh-3tvv.vercel.app/api";
 
 export async function POST(
   _request: Request,

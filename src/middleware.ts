@@ -4,6 +4,10 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
+  
+  "https://stratomesh-git-master-khushira2244s-projects.vercel.app",
+
+  "https://stratomesh.vercel.app",
 ];
 
 function getCorsHeaders(origin: string | null) {
