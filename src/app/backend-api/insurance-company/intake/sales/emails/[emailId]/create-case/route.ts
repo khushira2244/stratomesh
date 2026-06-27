@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_BASE_URL = "http://localhost:3001/api";
+function getBackendBaseUrl(request: Request) {
+  // 1. On Vercel / deployed backend, use env if provided
+  if (process.env.BACKEND_BASE_URL) {
+    return process.env.BACKEND_BASE_URL.replace(/\/$/, "");
+  }
+
+  // 2. If backend-api and api are in same Next app, call same origin
+  const origin = new URL(request.url).origin;
+  return `${origin}/api`;
+}
 
 export async function POST(
   request: Request,
@@ -8,11 +17,20 @@ export async function POST(
 ) {
   try {
     const { emailId } = await params;
+    const backendBaseUrl = getBackendBaseUrl(request);
+
+    const bodyText = await request.text();
 
     const response = await fetch(
-      `${BACKEND_BASE_URL}/insurance-company/intake/sales/emails/${emailId}/create-case`,
+      `${backendBaseUrl}/insurance-company/intake/sales/emails/${emailId}/create-case`,
       {
         method: "POST",
+        headers: {
+          "Content-Type":
+            request.headers.get("Content-Type") || "application/json",
+        },
+        body: bodyText || undefined,
+        cache: "no-store",
       }
     );
 
@@ -26,12 +44,12 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("Frontend create-case proxy failed:", error);
+    console.error("Create-case proxy failed:", error);
 
     return NextResponse.json(
       {
         success: false,
-        message: "Frontend proxy failed while creating case",
+        message: "Proxy failed while creating case",
         error: error instanceof Error ? error.message : "Unknown proxy error",
       },
       { status: 500 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { BlockStatus, CaseStatus } from "@prisma/client";
+import { BlockStatus, CaseStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -175,13 +175,16 @@ export async function POST(request: Request, context: RouteContext) {
       managerObservationStatus
     );
 
+    const updatedChecksJson =
+      updatedChecks as unknown as Prisma.InputJsonValue;
+
     const result = await prisma.$transaction(async (tx) => {
       const resolvedPreviousBlock = await tx.caseBlock.update({
         where: {
           id: previousBlock.id,
         },
         data: {
-          checks: updatedChecks,
+          checks: updatedChecksJson,
           pendingReason: "",
           comments: previousBlock.comments
             ? `${previousBlock.comments}\n\nResolution: ${note}`

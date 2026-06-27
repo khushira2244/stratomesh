@@ -7,6 +7,7 @@ import {
   RiskLevel,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 type ExtractedBlock = {
   name: string;
@@ -16,17 +17,17 @@ type ExtractedBlock = {
   checks?: Array<
     | string
     | {
-        name: string;
-        status?: string;
-        reason?: string;
-        waivedByTeam?: string;
-        managerObservationRequired?: boolean;
-        canBlockNextTeam?: boolean;
-        previousTeamDependency?: string;
-        questionedByTeam?: string;
-        managerDecision?: string;
-        config?: Record<string, unknown>;
-      }
+      name: string;
+      status?: string;
+      reason?: string;
+      waivedByTeam?: string;
+      managerObservationRequired?: boolean;
+      canBlockNextTeam?: boolean;
+      previousTeamDependency?: string;
+      questionedByTeam?: string;
+      managerDecision?: string;
+      config?: Record<string, unknown>;
+    }
   >;
   outputs?: string[];
   responsibleRole?: string;
@@ -182,182 +183,183 @@ export async function POST(request: Request) {
     const result = await prisma.$transaction(
       async (tx) => {
         const organization = await tx.organization.upsert({
-        where: {
-          id: "guardian-general-insurance",
-        },
-        update: {},
-        create: {
-          id: "guardian-general-insurance",
-          name: "Guardian General Insurance",
-          layer: OrganizationLayer.INSURANCE_COMPANY,
-        },
-      });
-
-      const teamSeed = [
-        { name: "Sales / Relationship", slug: "sales" },
-        { name: "Underwriting", slug: "underwriting" },
-        { name: "Pricing / Actuarial", slug: "pricing" },
-        { name: "Policy Issuance", slug: "policyIssuance" },
-        { name: "Finance / Premium Reconciliation", slug: "finance" },
-        { name: "Claims", slug: "claims" },
-        { name: "Management / Compliance", slug: "management" },
-      ];
-
-      for (const team of teamSeed) {
-        await tx.team.upsert({
           where: {
-            organizationId_slug: {
-              organizationId: organization.id,
-              slug: team.slug,
-            },
+            id: "guardian-general-insurance",
           },
-          update: {
-            name: team.name,
-          },
+          update: {},
           create: {
-            organizationId: organization.id,
-            name: team.name,
-            slug: team.slug,
+            id: "guardian-general-insurance",
+            name: "Guardian General Insurance",
+            layer: OrganizationLayer.INSURANCE_COMPANY,
           },
         });
-      }
 
-      const brokerDoc = await tx.brokerRequestDocument.create({
-        data: {
-          fileName,
-          documentType: "BROKER_REQUEST_EXTRACTED",
-          rawText: rawDocumentText,
-          extractedJson: extractedData as object,
-        },
-      });
+        const teamSeed = [
+          { name: "Sales / Relationship", slug: "sales" },
+          { name: "Underwriting", slug: "underwriting" },
+          { name: "Pricing / Actuarial", slug: "pricing" },
+          { name: "Policy Issuance", slug: "policyIssuance" },
+          { name: "Finance / Premium Reconciliation", slug: "finance" },
+          { name: "Claims", slug: "claims" },
+          { name: "Management / Compliance", slug: "management" },
+        ];
 
-      const insuranceCase = await tx.insuranceCase.create({
-        data: {
-          organizationId: organization.id,
-          brokerRequestDocumentId: brokerDoc.id,
-
-          caseCode: body.caseCode ?? makeCaseCode(extractedData.client.companyName),
-          title: extractedData.caseSummary.caseTitle,
-          requestType: extractedData.caseSummary.caseType,
-          insuranceType: extractedData.caseSummary.insuranceType,
-          status: toCaseStatus(extractedData.caseSummary.currentStatus),
-
-          brokerName: extractedData.broker.name,
-          brokerContactPerson: extractedData.broker.contactPerson,
-          brokerEmail: extractedData.broker.email,
-          brokerPriority: extractedData.broker.priority,
-
-          clientCompanyName: extractedData.client.companyName,
-          clientIndustry: extractedData.client.industry,
-          clientType: extractedData.client.clientType,
-          clientLocation: extractedData.client.location,
-          clientBusinessSize: extractedData.client.businessSize,
-
-          expectedPremium: extractedData.policyRequirement.expectedPremiumRange,
-          targetPremium: extractedData.policyRequirement.targetPremium,
-          sumInsured: extractedData.policyRequirement.totalSumInsured,
-          quoteDeadline: safeDate(extractedData.policyRequirement.quoteRequiredBy),
-          policyStartDate: safeDate(extractedData.policyRequirement.policyStartDate),
-          policyEndDate: safeDate(extractedData.policyRequirement.policyEndDate),
-          monthEndPriority: Boolean(extractedData.policyRequirement.monthEndPriority),
-
-          riskLevel: RiskLevel.MEDIUM,
-          riskTags: extractedData.riskTags ?? [],
-
-          happyPath: Boolean(extractedData.caseSummary.happyPath),
-          businessImpact: extractedData.caseSummary.businessImpact,
-
-          currentTeam: extractedData.caseSummary.currentTeam,
-          currentBlockName: extractedData.caseSummary.currentBlock,
-          currentStatus: toBlockStatus(extractedData.caseSummary.currentStatus),
-
-          extractedData: extractedData as object,
-          assetSchedule: extractedData.assetSchedule ?? [],
-          coverageRequired: extractedData.coverageRequired ?? [],
-          problems: extractedData.problems ?? [],
-        },
-      });
-
-      const documentRows = [
-        ...(extractedData.documents?.received ?? []).map((name) => ({
-          name,
-          status: toDocumentStatus("received"),
-          isRequired: true,
-        })),
-        ...(extractedData.documents?.missing ?? []).map((name) => ({
-          name,
-          status: toDocumentStatus("missing"),
-          isRequired: true,
-        })),
-        ...(extractedData.documents?.partial ?? []).map((name) => ({
-          name,
-          status: toDocumentStatus("partial"),
-          isRequired: true,
-        })),
-        ...(extractedData.documents?.notApplicable ?? []).map((name) => ({
-          name,
-          status: toDocumentStatus("notApplicable"),
-          isRequired: false,
-        })),
-      ];
-
-      if (documentRows.length > 0) {
-        await tx.caseDocument.createMany({
-          data: documentRows.map((doc) => ({
-            caseId: insuranceCase.id,
-            name: doc.name,
-            status: doc.status,
-            isRequired: doc.isRequired,
-          })),
-        });
-      }
-
-      for (const [teamKey, blocks] of Object.entries(extractedData.teamFlows)) {
-        for (let index = 0; index < blocks.length; index++) {
-          const block = blocks[index];
-
-          await tx.caseBlock.create({
-            data: {
-              caseId: insuranceCase.id,
-              teamKey,
-              teamName: teamKey,
-              name: block.name,
-              blockType: blockTypeFromName(block.name),
-              order: index + 1,
-              status: toBlockStatus(block.status),
-
-              inputs: block.inputs ?? [],
-              requiredDocs: block.requiredDocs ?? [],
-              checks: block.checks ?? [],
-              output: block.outputs ?? [],
-              responsible: block.responsibleRole,
-              observers: block.observers ?? [],
-              slaDays: block.slaDays ?? null,
-              pendingReason: block.pendingReason ?? "",
-              routeToNext: block.routeToNext ?? "",
-
-              config: block as object,
+        for (const team of teamSeed) {
+          await tx.team.upsert({
+            where: {
+              organizationId_slug: {
+                organizationId: organization.id,
+                slug: team.slug,
+              },
+            },
+            update: {
+              name: team.name,
+            },
+            create: {
+              organizationId: organization.id,
+              name: team.name,
+              slug: team.slug,
             },
           });
         }
-      }
 
-      return tx.insuranceCase.findUnique({
-        where: {
-          id: insuranceCase.id,
-        },
-        include: {
-          documents: true,
-          caseBlocks: {
-            orderBy: [
-              { teamKey: "asc" },
-              { order: "asc" },
-            ],
+        const brokerDoc = await tx.brokerRequestDocument.create({
+          data: {
+            fileName,
+            documentType: "BROKER_REQUEST_EXTRACTED",
+            rawText: rawDocumentText,
+            extractedJson: extractedData as object,
           },
-          brokerRequestDocument: true,
-        },
-      });
-    },
+        });
+
+        const insuranceCase = await tx.insuranceCase.create({
+          data: {
+            organizationId: organization.id,
+            brokerRequestDocumentId: brokerDoc.id,
+
+            caseCode: body.caseCode ?? makeCaseCode(extractedData.client.companyName),
+            title: extractedData.caseSummary.caseTitle,
+            requestType: extractedData.caseSummary.caseType,
+            insuranceType: extractedData.caseSummary.insuranceType,
+            status: toCaseStatus(extractedData.caseSummary.currentStatus),
+
+            brokerName: extractedData.broker.name,
+            brokerContactPerson: extractedData.broker.contactPerson,
+            brokerEmail: extractedData.broker.email,
+            brokerPriority: extractedData.broker.priority,
+
+            clientCompanyName: extractedData.client.companyName,
+            clientIndustry: extractedData.client.industry,
+            clientType: extractedData.client.clientType,
+            clientLocation: extractedData.client.location,
+            clientBusinessSize: extractedData.client.businessSize,
+
+            expectedPremium: extractedData.policyRequirement.expectedPremiumRange,
+            targetPremium: extractedData.policyRequirement.targetPremium,
+            sumInsured: extractedData.policyRequirement.totalSumInsured,
+            quoteDeadline: safeDate(extractedData.policyRequirement.quoteRequiredBy),
+            policyStartDate: safeDate(extractedData.policyRequirement.policyStartDate),
+            policyEndDate: safeDate(extractedData.policyRequirement.policyEndDate),
+            monthEndPriority: Boolean(extractedData.policyRequirement.monthEndPriority),
+
+            riskLevel: RiskLevel.MEDIUM,
+            riskTags: extractedData.riskTags ?? [],
+
+            happyPath: Boolean(extractedData.caseSummary.happyPath),
+            businessImpact: extractedData.caseSummary.businessImpact,
+
+            currentTeam: extractedData.caseSummary.currentTeam,
+            currentBlockName: extractedData.caseSummary.currentBlock,
+            currentStatus: toBlockStatus(extractedData.caseSummary.currentStatus),
+
+            extractedData: extractedData as unknown as Prisma.InputJsonValue,
+            assetSchedule: (extractedData.assetSchedule ?? []) as unknown as Prisma.InputJsonValue,
+            coverageRequired: Array.isArray(extractedData.coverageRequired)
+              ? extractedData.coverageRequired.map(String)
+              : [],
+            problems: (extractedData.problems ?? []) as unknown as Prisma.InputJsonValue,
+          },
+        });
+        const documentRows = [
+          ...(extractedData.documents?.received ?? []).map((name) => ({
+            name,
+            status: toDocumentStatus("received"),
+            isRequired: true,
+          })),
+          ...(extractedData.documents?.missing ?? []).map((name) => ({
+            name,
+            status: toDocumentStatus("missing"),
+            isRequired: true,
+          })),
+          ...(extractedData.documents?.partial ?? []).map((name) => ({
+            name,
+            status: toDocumentStatus("partial"),
+            isRequired: true,
+          })),
+          ...(extractedData.documents?.notApplicable ?? []).map((name) => ({
+            name,
+            status: toDocumentStatus("notApplicable"),
+            isRequired: false,
+          })),
+        ];
+
+        if (documentRows.length > 0) {
+          await tx.caseDocument.createMany({
+            data: documentRows.map((doc) => ({
+              caseId: insuranceCase.id,
+              name: doc.name,
+              status: doc.status,
+              isRequired: doc.isRequired,
+            })),
+          });
+        }
+
+        for (const [teamKey, blocks] of Object.entries(extractedData.teamFlows)) {
+          for (let index = 0; index < blocks.length; index++) {
+            const block = blocks[index];
+
+            await tx.caseBlock.create({
+              data: {
+                caseId: insuranceCase.id,
+                teamKey,
+                teamName: teamKey,
+                name: block.name,
+                blockType: blockTypeFromName(block.name),
+                order: index + 1,
+                status: toBlockStatus(block.status),
+
+                inputs: block.inputs ?? [],
+                requiredDocs: block.requiredDocs ?? [],
+                checks: (block.checks ?? []) as unknown as Prisma.InputJsonValue,
+                output: (block.outputs ?? []) as unknown as Prisma.InputJsonValue,
+                responsible: block.responsibleRole,
+                observers: block.observers ?? [],
+                slaDays: block.slaDays ?? null,
+                pendingReason: block.pendingReason ?? "",
+                routeToNext: block.routeToNext ?? "",
+
+                config: block as object,
+              },
+            });
+          }
+        }
+
+        return tx.insuranceCase.findUnique({
+          where: {
+            id: insuranceCase.id,
+          },
+          include: {
+            documents: true,
+            caseBlocks: {
+              orderBy: [
+                { teamKey: "asc" },
+                { order: "asc" },
+              ],
+            },
+            brokerRequestDocument: true,
+          },
+        });
+      },
       {
         maxWait: 10000,
         timeout: 30000,
