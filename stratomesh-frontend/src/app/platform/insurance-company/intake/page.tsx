@@ -402,33 +402,42 @@ function SalesIntakeContent() {
     loadActiveCaseFromSession();
   }, [caseId, caseDetail]);
 
-  const handleRoleChange = (team: string) => {
-    setSelectedTeam(team);
+const handleRoleChange = (team: string) => {
+  setSelectedTeam(team);
 
-    setDemoSession({
-      role: team,
-      userName: name,
-      scenarioKey: journey,
-      agendaId,
-      agendaLabel,
-      scenarioName,
-    });
+  setDemoSession({
+    role: team,
+    userName: name,
+    scenarioKey: journey,
+    agendaId,
+    agendaLabel,
+    scenarioName,
+  });
 
-    if (team === "sales") {
-      router.push(
-        `/platform/insurance-company/intake?journey=${journey}&layer=insurance-company&team=sales&name=${encodeURIComponent(
-          name
-        )}`
-      );
-      return;
-    }
-
+  if (team === "sales") {
     router.push(
-      `/platform/insurance-company/teams/${team}?journey=${journey}&layer=insurance-company&team=${team}&name=${encodeURIComponent(
+      `/platform/insurance-company/intake?journey=${journey}&layer=insurance-company&team=sales&name=${encodeURIComponent(
         name
       )}`
     );
-  };
+    return;
+  }
+
+  if (team === "management") {
+    router.push(
+      `/platform/insurance-company/manager?journey=${journey}&layer=insurance-company&team=management&name=${encodeURIComponent(
+        name
+      )}`
+    );
+    return;
+  }
+
+  router.push(
+    `/platform/insurance-company/teams/${team}?journey=${journey}&layer=insurance-company&team=${team}&name=${encodeURIComponent(
+      name
+    )}`
+  );
+};
 
   const handleOpenEmail = async (email: EmailItem) => {
     const emailId = getEmailId(email);
@@ -507,7 +516,11 @@ function SalesIntakeContent() {
       return;
     }
 
-    if (!caseId) {
+    /**
+     * If Sales has sent a desk item into workspace, always keep box editing local first.
+     * This preserves Add / Observe / Missing / Comments before final submit.
+     */
+    if (draftRequest) {
       const template =
         salesBoxTemplates.find((block) => block.name === blockName) ||
         getWorkspaceBoxTemplate(blockName);
@@ -710,6 +723,10 @@ function SalesIntakeContent() {
             }
       )
     );
+  };
+
+  const removeDraftBox = (boxId: string) => {
+    setDraftBoxes((current) => current.filter((box) => box.id !== boxId));
   };
 
   const handleMoveToWorkspace = async () => {
@@ -1016,7 +1033,7 @@ function SalesIntakeContent() {
       setDraftBoxes([]);
       setDraftRequest(null);
       setSelectedEmail(null);
-      setActiveTab("workspace");
+      setActiveTab("flow");
       setError("");
     } catch (err) {
       console.error("FINALIZE SALES WORKSPACE ERROR:", err);
@@ -1153,6 +1170,7 @@ function SalesIntakeContent() {
       setCaseDetail(detailJson?.data || detailJson);
 
       setUnderwritingSent(true);
+      setActiveTab("flow");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to progress case");
     } finally {
@@ -1433,7 +1451,7 @@ function SalesIntakeContent() {
                 )}
               </div>
 
-              {!caseId && (
+              {draftRequest && (
                 <div className="mt-6 space-y-5">
                   {!draftRequest ? (
                     <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
@@ -1520,21 +1538,32 @@ function SalesIntakeContent() {
                                       </div>
                                     </div>
 
-                                    {(observedItems.length > 0 ||
-                                      missingItems.length > 0) && (
-                                      <div className="flex flex-wrap justify-end gap-2">
-                                        {observedItems.length > 0 && (
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeDraftBox(box.id)}
+                                        disabled={workspaceLoading}
+                                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-black text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        Remove
+                                      </button>
+
+                                      {(observedItems.length > 0 ||
+                                        missingItems.length > 0) && (
+                                        <>
+                                          {observedItems.length > 0 && (
                                           <span className="rounded-full bg-purple-50 px-3 py-1 text-xs font-black text-purple-700">
                                             {observedItems.length} Observe
                                           </span>
-                                        )}
-                                        {missingItems.length > 0 && (
-                                          <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">
-                                            {missingItems.length} Missing
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
+                                          )}
+                                          {missingItems.length > 0 && (
+                                            <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-black text-red-700">
+                                              {missingItems.length} Missing
+                                            </span>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
                                   </div>
 
                                   <div className="mt-4 space-y-3">
@@ -1643,7 +1672,7 @@ function SalesIntakeContent() {
                 </div>
               )}
 
-              {caseId && (
+              {caseId && !draftRequest && (
                 <>
                   <div className="mt-6 rounded-2xl bg-slate-50 p-5">
                     <div className="text-xs font-bold uppercase tracking-wide text-slate-400">

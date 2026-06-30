@@ -85,31 +85,40 @@ function UnderwritingWorkspaceContent() {
     loadUnderwritingCases();
   }, []);
 
-  function handleRoleChange(team: string) {
-    setSelectedTeam(team);
+function handleRoleChange(team: string) {
+  setSelectedTeam(team);
 
-    const session = getDemoSession();
+  const session = getDemoSession();
 
-    setDemoSession({
-      ...session,
-      role: team,
-    });
+  setDemoSession({
+    ...session,
+    role: team,
+  });
 
-    if (team === "sales") {
-      router.push(
-        `/platform/insurance-company/intake?journey=${journey}&layer=insurance-company&team=sales&name=${encodeURIComponent(
-          name
-        )}`
-      );
-      return;
-    }
-
+  if (team === "sales") {
     router.push(
-      `/platform/insurance-company/teams/${team}?journey=${journey}&layer=insurance-company&team=${team}&name=${encodeURIComponent(
+      `/platform/insurance-company/intake?journey=${journey}&layer=insurance-company&team=sales&name=${encodeURIComponent(
         name
       )}`
     );
+    return;
   }
+
+  if (team === "management") {
+    router.push(
+      `/platform/insurance-company/manager?journey=${journey}&layer=insurance-company&team=management&name=${encodeURIComponent(
+        name
+      )}`
+    );
+    return;
+  }
+
+  router.push(
+    `/platform/insurance-company/teams/${team}?journey=${journey}&layer=insurance-company&team=${team}&name=${encodeURIComponent(
+      name
+    )}`
+  );
+}
 
   async function loadUnderwritingCases() {
     try {

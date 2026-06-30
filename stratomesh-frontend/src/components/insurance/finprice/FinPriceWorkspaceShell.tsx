@@ -328,24 +328,31 @@ function FinPriceWorkspaceShellContent({
 
     return Array.isArray(teamBlocks) ? teamBlocks.length : 0;
   }
-
-  function handleRoleChange(nextTeam: string) {
-    if (nextTeam === "sales") {
-      router.push(
-        `/platform/insurance-company/intake?journey=${journey}&layer=${layer}&team=sales&name=${encodeURIComponent(
-          name
-        )}`
-      );
-      return;
-    }
-
+function handleRoleChange(nextTeam: string) {
+  if (nextTeam === "sales") {
     router.push(
-      `/platform/insurance-company/teams/${nextTeam}?journey=${journey}&layer=${layer}&team=${nextTeam}&name=${encodeURIComponent(
+      `/platform/insurance-company/intake?journey=${journey}&layer=${layer}&team=sales&name=${encodeURIComponent(
         name
       )}`
     );
+    return;
   }
 
+  if (nextTeam === "management") {
+    router.push(
+      `/platform/insurance-company/manager?journey=${journey}&layer=${layer}&team=management&name=${encodeURIComponent(
+        name
+      )}`
+    );
+    return;
+  }
+
+  router.push(
+    `/platform/insurance-company/teams/${nextTeam}?journey=${journey}&layer=${layer}&team=${nextTeam}&name=${encodeURIComponent(
+      name
+    )}`
+  );
+}
   return (
     <main style={styles.page}>
       <section style={styles.header}>

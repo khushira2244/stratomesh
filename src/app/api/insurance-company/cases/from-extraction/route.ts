@@ -5,9 +5,9 @@ import {
   DocumentStatus,
   OrganizationLayer,
   RiskLevel,
+  Prisma,
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 
 type ExtractedBlock = {
   name: string;
@@ -228,7 +228,7 @@ export async function POST(request: Request) {
             fileName,
             documentType: "BROKER_REQUEST_EXTRACTED",
             rawText: rawDocumentText,
-            extractedJson: extractedData as object,
+            extractedJson: extractedData as unknown as Prisma.InputJsonValue,
           },
         });
 
@@ -338,7 +338,7 @@ export async function POST(request: Request) {
                 pendingReason: block.pendingReason ?? "",
                 routeToNext: block.routeToNext ?? "",
 
-                config: block as object,
+                config: block as unknown as Prisma.InputJsonValue,
               },
             });
           }
